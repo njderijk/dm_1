@@ -1,4 +1,19 @@
-# dm_1
+# Load libraries
+library(data.tree)
+
+
+tree_grow <- function(x, y, nmin, minleaf, nfeat){
+}
+
+tree_pred <- function() {
+}
+
+tree_grow_b <- function(){
+  
+}
+
+tree_pred_b <- function() {
+} 
 
 tree_grow ( x, y, nmin, minleaf, nfeat) 
 	-> return tree object (tr)
