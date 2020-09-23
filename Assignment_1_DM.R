@@ -54,54 +54,74 @@
 
 library(reldist)
 library(glue)
-creditdata <- read.csv("~/Documents/DataMining/dm_1/creditdata")
-x <- creditdata[,-6]
-nmin <- 2
-minleaf <- 1
-y <- creditdata[,6]
+library(data.tree)
+# creditdata <- read.csv("~/DataMining/dm_1/creditdata")
+testdata <- creditdata[,length(creditdata)] # take last column (class)
+# x <- creditdata # creditdata moet blijven om de boom te bouwen met classificaties
+#nmin <- 2
+#minleaf <- 1
+#nfeat <- 2
+# y <- creditdata[,length(creditdata)]
+set.seed(45)
 
-tree_grow <- function(x, y, nmin, minleaf, nfeat){
-  # For the first iteration.. Start building the tree
-  #1 pick a random feature
-  feature <- sample(1:length(x), 1, replace = TRUE)
-  print(feature)
-  # select node with feature
-  current_node_full <- x
-  current_node <- x[,feature]
-  print(current_node)
-  Root_Node <- Node$new("Root_Node")
-  if (nrow(current_node_full) >= nmin) {
-    # check if the minimum observations are larger or equal to nmin
-    # If Gini-Index > 0?
-    # TODO: Write Gini-function (mogen we library gebruiken?)
-    print(gini(current_node))
-    if (gini(current_node) > 0) {
-      print("Gini greater than 0, proceeding..")
-      gini_df <- calculate_gini(current_node, y)
-      optimal_split_value <- calculate_optimal_split_value(gini_df)
-      # split on that value 
-      left_split <- current_node_full[current_node_full[, feature] <= split_value,]
-      right_split <- current_node_full[current_node_full[, feature] > split_value,]
-        if ((nrow(left_split) > minleaf) & nrow(right_split > minleaf)){
-          # allowed to split
-          print("allowed to split based on minleaf constraint")
-          # left split 
-          # left_split_name <- "{colnames(current_node_full[feature])} <= {split_value}"
-          # left_split_name <- glue(left_split_name)
-          # TODO: Save the splits in the tree object. 
-          # Iterate: create a new "current node on which the values "y" are also adapted"
-          current_node <- left_split
-          return (new_node, y, ...)
-        }
-        else {
-          print("split not allowed, try next max value.. or make leaf of current node???")
-          # TODO: make leaf of current node 
-        }
-      # for the amount of splits possible.. check if you can split it.
-      }
-  }
-  # return tree
-}
+# tree_grow <- function(x, y, nmin, minleaf, nfeat){
+#   # For the first iteration.. Start building the tree
+#   #1 pick a random feature
+#   # feature <- 4
+#   feature <- sample(1:length(creditdata) - 1, 1, replace = TRUE) # - 1 omdat je class meeneemt
+#   print(feature)
+#   # select node with feature
+#   current_node_full <- x
+#   current_node <- x[,feature]
+#   print(current_node)
+#   
+#   pred_tree <- Node$new("Root_Node", observations=length(x[,1]), bad=sum(y== 0), good=sum(y==1))
+#   print(pred_tree, "observations", "bad", "good")
+#   
+#   repeat {
+#     if (nrow(current_node_full) >= nmin) {
+#       # check if the minimum observations are larger or equal to nmin
+#       # If Gini-Index > 0?
+#       # TODO: Write Gini-function (mogen we library gebruiken?)
+#       print(gini(current_node))
+#       if (gini(current_node) > 0) {
+#         print("Gini greater than 0, proceeding..")
+#         gini_df <- calculate_gini(current_node, y)
+#         optimal_split_value <- calculate_optimal_split_value(gini_df)
+#         # split on that value ]
+#         left_split <- current_node_full[current_node_full[, feature] <= optimal_split_value,]
+#         right_split <- current_node_full[current_node_full[, feature] > optimal_split_value,]
+#         print(left_split)
+#         print(right_split)
+#           if ((nrow(left_split) > minleaf) & nrow(right_split > minleaf)){
+#             # allowed to split
+#             print("allowed to split based on minleaf constraint")
+#             # left split 
+#             # left_split_name <- "{colnames(current_node_full[feature])} <= {split_value}"
+#             # left_split_name <- glue(left_split_name)
+#             # TODO: Save the splits in the tree object. 
+#             # Iterate: create a new "current node on which the values "y" are also adapted"
+#             
+#             pred_tree$AddChild(paste(colnames(x[feature]), "<=", optimal_split_value), observations = length(left_split[,1]), bad = sum(left_split['class'] == 0), good = sum(left_split['class'] == 1))
+#             pred_tree$AddChild(paste(colnames(x[feature]), ">", optimal_split_value), observations = length(right_split[,1]), bad = sum(right_split['class'] == 0), good = sum(right_split['class'] == 1))
+#             print(pred_tree, "observations", "bad", "good")
+#             current_node <- left_split
+#             # return (new_node, y, ...)
+#           }
+#           else {
+#             print("split not allowed, try next max value.. or make leaf of current node???")
+#             # TODO: make leaf of current node 
+#           }
+#         # for the amount of splits possible.. check if you can split it.
+#         }
+#     }
+#     else {
+#       print("nmin constraint reached, breaking Repeat-statement")
+#       break
+#       # return tree
+#     }
+#   }
+# }
 
 calculate_gini <- function(current_node, y) {
   # Calculate all possible splits 
