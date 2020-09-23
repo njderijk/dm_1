@@ -22,7 +22,7 @@ tree_grow <- function(x, y, nmin, minleaf, nfeat){
       # Depth traverse the left split until the end
       
       print("nrow current node > nmin")
-      if (gini_function(current_node, y) > 0) {
+      if (gini_impurity(current_node) > 0) {
         gini_df <- calculate_gini(current_node, y)
         optimal_split_value <- calculate_optimal_split_value(gini_df)
         
@@ -153,6 +153,10 @@ calculate_optimal_split_value <- function(gini_df){
 gini_function <- function(x, y) {
   return(0.1)
   
+}
+
+gini_impurity <- function(node){
+  (node$bad /node$observations) * (node$good/node$observations)
 }
 
 tree_pred <- function(tr, x) {
