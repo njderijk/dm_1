@@ -1,28 +1,35 @@
 library(dplyr)
-dataset <- read.csv("~/GitHub/dm_1/creditdata")
-dataset <- dataset[,-length(dataset)]
+library(data.tree)
+
+creditdata <- read.csv("~/GitHub/dm_1/creditdata")
+x <- creditdata[,-length(creditdata)]
 testdata <- creditdata[,3]
+
+# Select the data and features
+y <- creditdata[,6]
 minimum_observations <- 2
 minimum_leafs <- 1
 minimum_features <- 2
-# 
-# pred_tree <- Node$new("Root_Node", observations=20, bad=5, good=5)
-pred_tree$AddChild("income <= 36", observations=5, bad=5, good=2, operator="<=", split_on=36)
-# pred_tree$'income <= 36'$AddChild("age <= 32.5", observations=5, bad=4, good=0, operator="<=", split_on=32.5)
-# pred_tree$'income <= 36'$AddChild("age > 32.5", observations=5, bad=1, good=2, operator=">", split_on=32.5)
-pred_tree$AddChild("income > 36", observations=5, bad=0, good= 3, operator=">", split_on=36)
+
+# Create an example of a tree
+pred_tree <- Node$new("Root_Node", observations=20, bad=12, good=8)
+pred_tree$AddChild("income <= 36", observations=10, bad=8, good=2, operator="<=", split_on=36)
+pred_tree$'income <= 36'$AddChild("age <= 32.5", observations=5, bad=4, good=1, operator="<=", split_on=32.5)
+pred_tree$'income <= 36'$AddChild("age > 32.5", observations=5, bad=1, good=4, operator=">", split_on=32.5)
+pred_tree$AddChild("income > 36", observations=10, bad=0, good= 7, operator=">", split_on=36)
 # print(pred_tree, "observations", "bad", "good", "operator", "split_on", "level")
 
-tree_grow(dataset, testdata, minimum_observations, minimum_leaf, minimum_features)
-
-x <- creditdata
+# tree_grow(dataset, testdata, minimum_observations, minimum_leaf, minimum_features)
 
 tree_grow <- function(x, y, nmin, minleaf, nfeat){
   # Start beginning of the tree, build the root
   pred_tree <- Node$new("Root_Node", observations=nrow(x), bad=(sum(y==0)), good=sum(y==1))
+  # append y to the dataframe for simplicity
+  x$class <- y
   # Calculate the children 
   # repeat {
-    feature <- sample(1:length(x), 1, replace = TRUE)
+    # select feature, but not from the class 
+    feature <- sample(1:length(x)-1, 1, replace = TRUE)
     print(feature)
     # current_node <- x[feature]
     # There is an error here, the current node should not be a subset of x, 
@@ -31,11 +38,11 @@ tree_grow <- function(x, y, nmin, minleaf, nfeat){
     
     # How large is the tree? 
     depth_tree=pred_tree$height
+    print(depth_tree)
     # SELECTION OF CURRENT NODE HERE; perhaps writing a function..?
     # Combining the heigth of the tree.. 
     # here, select one-node for simplicity 
-    current_node <- pred_tree$Climb(position=1)
-    
+    current_node <- pred_tree$Climb(position=1, position=1)
     # If the current_node is larger than the nmin
     if (current_node$observations >= nmin) {
       # Depth traverse the left split until the end.. 
@@ -97,24 +104,30 @@ tree_grow <- function(x, y, nmin, minleaf, nfeat){
 }
 
 
+
 calculate_split_options <- function(current_node, x, feature) {
   # Calculate all possible splits 
   # propagate through the tree.
   # this is not the best solution, but we have to know the feature values we split on.
   current_node
+
+  # TODO: Actually select the relevant data, also from previous branches
+  # ACTUALLY, if we propegate properly, select only from current branch.. 
+  # You can find "parent" and actually refine it further. 
+  # only select relevant data from current branch. 
+  # Select the relevant data from the creditdata
   
-  # Split the original dataframe, on the "operator" and "split on" the left side (depending on 
-  # the depth of the tree.. ) of the dataframe 
-  current_node_operator <- current_node$operator
-  current_node_split_value <- current_node$split_on
+  current_node_name <- current_node$name
+  subset <- x %>% 
+    # filter on current branch
+    filter(rlang::eval_tidy(rlang::parse_expr(current_node_name)))
+    
+  # filter on current feature
+  current_node_tibble <- subset %>%
+    select(feature,class) 
   
-  # TODO: Actually select the relevant data 
-  # current_node_selection <- filter(current_node_selection, feature + current_node_operator + current_node_split_value)
-  # For now, select all the values
-  # Add the "bad" and "good" values tot that selection, so we can actually
-  # use this df to split
-  # TODO: actually select the relevant Y values
-  current_node_tibble <- tibble(values = x[,feature], lables = y)
+  names(current_node_tibble)[1] <- "values"
+  names(current_node_tibble)[2] <- "labels"
 
   # Now we've selected the node, and the data to actually calculate the split
   # How many splits are possible?
@@ -149,12 +162,10 @@ calculate_split_options <- function(current_node, x, feature) {
     print(split_left_length)
     
     # calculate the good/bad splits
-    # I get an error.. not sure why, so I added the tibble before it. 
-    # Superfluous.. 
     split_left_bad <- split_left_greater %>%
-      filter(split_left_greater$labels == 0)
+      filter(labels == 0)
     split_left_good <- split_left_greater %>%
-      filter(split_left_greater$labels == 1)
+      filter(labels == 1)
     print(split_left_bad)
     print(split_left_good)
     
@@ -165,9 +176,9 @@ calculate_split_options <- function(current_node, x, feature) {
     split_right_length <- nrow(split_right_smaller_equalto)
     print(split_right_length)
     split_right_bad <- split_right_smaller_equalto %>%
-      filter(split_right_smaller_equalto$lables == 0)
+      filter(labels == 0)
     split_right_good <- split_right_smaller_equalto %>%
-      filter(split_right_smaller_equalto$lables == 1)
+      filter(labels == 1)
     print(split_right_bad)
     print(split_right_good)
     
