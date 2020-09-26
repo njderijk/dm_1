@@ -2,10 +2,11 @@ tree_pred <- function(x, tr) {
   # vector for all the predicted class labels
   y <- vector(mode="integer", length=nrow(x))
   
-  # loop over each row
+  # loop over each row of x
   for (i in 1:nrow(x)) {
     current_node <- tr
     
+    # traverse down the tree until a leaf is reached
     repeat {
       # check if current node is a leaf
       if (current_node$isLeaf) {

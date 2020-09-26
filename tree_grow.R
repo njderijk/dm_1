@@ -5,19 +5,20 @@ attributes <- creditdata[-ncol(creditdata)]
 classes <- creditdata[ncol(creditdata)]
 
 tree_grow <- function(x, y, nmin, minleaf, nfeat) {
-  
+  # get the total numbers of good and bad cases
   nr_good <- sum(classes == 0)
   nr_bad <- sum(classes == 1)
   
+  # the root node of the prediction tree
   root_node <- Node$new("root_node", nr_good = nr_good, nr_bad = nr_bad)
   
+  # grow the tree using a recursive function
   tree_grow_recurs(root_node, x, y, nmin, minleaf, nfeat)
   
   return(root_node)
 }
 
 tree_grow_recurs <- function(node, cases, classes, nmin, minleaf, nfeat) {
-  
   # check nmin constraint
   if (nrow(cases) < nmin) {
     return()
@@ -44,27 +45,30 @@ tree_grow_recurs <- function(node, cases, classes, nmin, minleaf, nfeat) {
     # find best split for this feature
     unique_values <- sort(unique(cases[,feature]))
     
-    # check if split is possible
+    # check if split is possible (can't split on only one unique value)
     if (length(unique_values) >= 2) {
+      # calculate splits for consecutive values
       for (i in 1:(length(unique_values) - 1)) {
+        # calculate the average value
         val1 <- unique_values[i]
         val2 <- unique_values[i + 1]
         avg <- (val1 + val2) / 2
         
+        # split cases on this average value
         left_cases <- cases[cases[feature] < avg,]
         right_cases <- cases[cases[feature] > avg,]
       
         # check minleaf constraint
         if (nrow(left_cases) >= minleaf & nrow(right_cases) >= minleaf) {
           # calculate quality of this split
-          total_bad <- sum(cases[ncol(cases)]==0)
-          total_good <- sum(cases[ncol(cases)]==1)
+          total_bad <- sum(cases[ncol(cases)] == 0)
+          total_good <- sum(cases[ncol(cases)] == 1)
           
-          left_bad <- sum(left_cases[ncol(left_cases)]==0)
-          left_good <- sum(left_cases[ncol(left_cases)]==1)
+          left_bad <- sum(left_cases[ncol(left_cases)] == 0)
+          left_good <- sum(left_cases[ncol(left_cases)] == 1)
           
-          right_bad <- sum(right_cases[ncol(right_cases)]==0)
-          right_good <- sum(right_cases[ncol(right_cases)]==1)
+          right_bad <- sum(right_cases[ncol(right_cases)] == 0)
+          right_good <- sum(right_cases[ncol(right_cases)] == 1)
           
           # calculate the quality of this split using the gini-index
           total_i <- (total_good / nrow(cases)) * (total_bad / nrow(cases))
@@ -73,6 +77,7 @@ tree_grow_recurs <- function(node, cases, classes, nmin, minleaf, nfeat) {
           
           quality <- total_i - left_i - right_i
           
+          # check if this split is the best found so far
           if (quality > best_split_quality) {
             best_split_quality <- quality
             best_split_feature <- feature
@@ -83,20 +88,22 @@ tree_grow_recurs <- function(node, cases, classes, nmin, minleaf, nfeat) {
     }
   }
   
+  # check if a split has been found which meets all the constraints
   if (!(best_split_quality == -1) & !(best_split_feature == -1) & !(best_split_value == -1)) {
-    # a best split which meets the minleaf constraint is found
+    # get the names for the child nodes
     feature_name <- colnames(cases)[best_split_feature]
     left_name <- paste(feature_name, " < ", best_split_value)
     right_name <- paste(feature_name, " > ", best_split_value)
     
+    # split cases on split values
     left_cases <- cases[cases[best_split_feature] < best_split_value,]
     right_cases <- cases[cases[best_split_feature] > best_split_value,]
     
-    left_bad <- sum(left_cases[ncol(left_cases)]==0)
-    left_good <- sum(left_cases[ncol(left_cases)]==1)
+    left_bad <- sum(left_cases[ncol(left_cases)] == 0)
+    left_good <- sum(left_cases[ncol(left_cases)] == 1)
     
-    right_bad <- sum(right_cases[ncol(right_cases)]==0)
-    right_good <- sum(right_cases[ncol(right_cases)]==1)
+    right_bad <- sum(right_cases[ncol(right_cases)] == 0)
+    right_good <- sum(right_cases[ncol(right_cases)] == 1)
     
     node$feature <- best_split_feature
     node$value <- best_split_value

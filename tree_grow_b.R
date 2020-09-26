@@ -24,6 +24,6 @@ tree_grow_b <- function(x, y, nmin, minleaf, nfeat, m) {
   return (tree_list)
 }
 
-tr <- tree_grow_b(attributes, classes, 2, 1, ncol(attributes), 10)
+trees <- tree_grow_b(attributes, classes, 2, 1, ncol(attributes), 15)
 
-print(tr)
+print(trees)
