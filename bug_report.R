@@ -168,8 +168,8 @@ tree_grow_b <- function(x, y, nmin, minleaf, nfeat, m) {
                 # take a random sample
                 sample_cases <- cases[sample(nrow(cases), (nrow(cases)), replace = TRUE), ]
                 
-                attributes <- cases[-ncol(cases)]
-                classes <- cases[ncol(cases)]
+                attributes <- sample_cases[-ncol(sample_cases)]
+                classes <- sample_cases[ncol(cases)]
                 
                 # grow a tree for this sample
                 tree <- tree_grow(attributes, classes, nmin, minleaf, nfeat)
@@ -181,54 +181,6 @@ tree_grow_b <- function(x, y, nmin, minleaf, nfeat, m) {
 }
 
 tree_pred_b <- function(trees, x) {
-        # create a dataframe for all the predictions
-        predictions_matrix <- data.frame(matrix(NA, nrow = nrow(x), ncol = length(trees)))
-        
-        # loop over all the trees and add predictions vector as column to the matrix
-        for (i in 1:length(trees)) {
-                tree <- trees[[i]]
-                prediction <- tree_pred(x, tree)
-                predictions_matrix[i] <- prediction
-        }
-        
-        # create a predictions vector by taking the majority votes for each row
-        y <- ifelse(rowSums(predictions_matrix==1) < rowSums(predictions_matrix==0), 0, 1)
-        
-        return(y)
-}
-
-# tree grow function with random forest
-tree_grow_rf <- function(x, y, nmin, minleaf, nfeat, m) {
-        # combine features with classes
-        cases <- x
-        print(paste("ncol cases", ncol(cases)))
-        selected_features <- sample(1:length(cases - 1), nfeat, replace=TRUE) # - 1 to not consider the 'class' column
-        print(selected_features)
-        cases <- cases[,selected_features] # Select the random subset of the features
-        cases$class <- y
-        print(cases)
-        
-        # create a list for the trees
-        tree_list <- list()
-        
-        # create m trees, each grown on a bootstrap sample of x
-        for (i in 1:m) {
-                # take a random sample
-                sample_cases <- cases[sample(nrow(cases), (nrow(cases)), replace = TRUE), ]
-                
-                attributes <- cases[-ncol(cases)]
-                classes <- cases[ncol(cases)]
-                
-                # grow a tree for this sample
-                tree <- tree_grow(attributes, classes, nmin, minleaf, nfeat)
-                
-                tree_list[[i]] <- tree
-        }
-        
-        return (tree_list)
-}
-
-tree_pred_rf <- function(trees, x) {
         # create a dataframe for all the predictions
         predictions_matrix <- data.frame(matrix(NA, nrow = nrow(x), ncol = length(trees)))
         
@@ -303,7 +255,7 @@ tibble(Sensitivity = TP_single / (TP_single+FN_single), #sensitivity
 # 2) use bagging with nmin = 15, minleaf = 5, nfeat = 41, m = 100
 #       and compute the accuracy, precision and recall on the test set
 # grow a tree with bagging on the training data
-tr_bagging <- tree_grow_b(training_data_x, training_data_y, 15, 5, 41, 2)
+tr_bagging <- tree_grow_b(training_data_x, training_data_y, 15, 5, 41, 100)
 
 # predict classes for testing data using tree grown on training data with bagging
 y_bagging <- tree_pred_b(tr_bagging, testing_data_x)
@@ -336,10 +288,10 @@ tibble(Sensitivity = TP_bagging / (TP_bagging+FN_bagging), #sensitivity
 # 3) Use Use random forests with the same parameter settings as under (2), except that nfeat = 6 
 # Compute the accuracy, precision and recall of the random forest on the test set.
 # grow a random forest on the training data
-tr_random_forest <- tree_grow_rf(training_data_x, training_data_y, 15, 5, 6, 3)
+tr_random_forest <- tree_grow_b(training_data_x, training_data_y, 15, 5, 6, 100)
 
 # predict classes for testing data using tree grown on training data with bagging
-y_random_forest <- tree_pred_rf(tr_random_forest, testing_data_x)
+y_random_forest <- tree_pred_b(tr_random_forest, testing_data_x)
 
 # confusion matrix (random forest):
 conf_matrix_random_forest <- table(true = testing_data_y, pred = y_random_forest)
