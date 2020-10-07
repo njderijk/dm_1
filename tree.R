@@ -168,8 +168,11 @@ tree_pred_b <- function(x, trees) {
 # given the nmin and minleaf constraint, the best split for the given node is determined,
 # if a split is possible, possible splits for the child nodes are determined recursively
 tree_grow_recurs <- function(node, cases, classes, nmin, minleaf, nfeat) {
+        # total number of cases
+        total_cases <- nrow(cases)
+        
         # check nmin constraint
-        if (nrow(cases) < nmin) {
+        if (total_cases < nmin) {
                 return()
         }
         
@@ -189,6 +192,13 @@ tree_grow_recurs <- function(node, cases, classes, nmin, minleaf, nfeat) {
         best_split_feature <- -1
         best_split_value <- -1
         
+        total_columns <- ncol(cases)
+        
+        # quality of the parent node
+        total_bad <- sum(cases[total_columns] == 0)
+        total_good <- sum(cases[total_columns] == 1)
+        total_i <- (total_good / total_cases) * (total_bad / total_cases)
+        
         # loop over all features
         for (feature in random_features) {
                 # find best split for this feature
@@ -207,22 +217,22 @@ tree_grow_recurs <- function(node, cases, classes, nmin, minleaf, nfeat) {
                                 left_cases <- cases[cases[feature] < avg,]
                                 right_cases <- cases[cases[feature] > avg,]
                                 
+                                # total number of cases both splits
+                                total_left <- nrow(left_cases)
+                                total_right <- nrow(right_cases)
+                                
                                 # check minleaf constraint
-                                if (nrow(left_cases) >= minleaf & nrow(right_cases) >= minleaf) {
+                                if (total_left >= minleaf & total_right >= minleaf) {
                                         # calculate quality of this split
-                                        total_bad <- sum(cases[ncol(cases)] == 0)
-                                        total_good <- sum(cases[ncol(cases)] == 1)
+                                        left_good <- sum(left_cases$class)
+                                        left_bad <- total_left - left_good
                                         
-                                        left_bad <- sum(left_cases[ncol(left_cases)] == 0)
-                                        left_good <- sum(left_cases[ncol(left_cases)] == 1)
-                                        
-                                        right_bad <- sum(right_cases[ncol(right_cases)] == 0)
-                                        right_good <- sum(right_cases[ncol(right_cases)] == 1)
+                                        right_good <- sum(right_cases$class)
+                                        right_bad <- total_right - right_good
                                         
                                         # calculate the quality of this split using the gini-index
-                                        total_i <- (total_good / nrow(cases)) * (total_bad / nrow(cases))
-                                        left_i <- (nrow(left_cases) / nrow(cases)) * (left_good / nrow(left_cases)) * (left_bad / nrow(left_cases))
-                                        right_i <- (nrow(right_cases) / nrow(cases)) * (right_good / nrow(right_cases)) * (right_bad / nrow(right_cases))
+                                        left_i <- (total_left / total_cases) * (left_good / total_left) * (left_bad / total_left)
+                                        right_i <- (total_right / total_cases) * (right_good / total_right) * (right_bad / total_right)
                                         
                                         quality <- total_i - left_i - right_i
                                         
@@ -249,12 +259,14 @@ tree_grow_recurs <- function(node, cases, classes, nmin, minleaf, nfeat) {
                 right_cases <- cases[cases[best_split_feature] > best_split_value,]
                 
                 # nr of good and bad cases that will end up in the right child node
-                left_bad <- sum(left_cases[ncol(left_cases)] == 0)
-                left_good <- sum(left_cases[ncol(left_cases)] == 1)
+                left_total <- nrow(left_cases)
+                left_good <- sum(left_cases$class)
+                left_bad <- left_total - left_good
                 
                 # nr of good and bad cases that will end up in the left child node
-                right_bad <- sum(right_cases[ncol(right_cases)] == 0)
-                right_good <- sum(right_cases[ncol(right_cases)] == 1)
+                right_total <- nrow(right_cases)
+                right_good <- sum(right_cases$class)
+                right_bad <- right_total - right_good
                 
                 # add the feature and the value this node is split on to the node
                 node$feature <- best_split_feature
@@ -265,8 +277,8 @@ tree_grow_recurs <- function(node, cases, classes, nmin, minleaf, nfeat) {
                 right_node <- node$AddChild(right_name, nr_good = right_good, nr_bad = right_bad)
                 
                 # grow subtrees for both child nodes recursively
-                tree_grow_recurs(left_node, left_cases[-ncol(left_cases)], left_cases[ncol(left_cases)], nmin, minleaf, nfeat)
-                tree_grow_recurs(right_node, right_cases[-ncol(right_cases)], right_cases[ncol(right_cases)] ,nmin, minleaf, nfeat)
+                tree_grow_recurs(left_node, left_cases[-total_columns], left_cases[total_columns], nmin, minleaf, nfeat)
+                tree_grow_recurs(right_node, right_cases[-total_columns], right_cases[total_columns] ,nmin, minleaf, nfeat)
         }
         
         return()
