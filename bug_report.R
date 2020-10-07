@@ -1,3 +1,7 @@
+# Noud Jan de Rijk - 5670721
+# Rose Mary Hulscher - 4272978
+# Yasmin van Dijk - 6014542
+
 ## Part 1: Programming 
 library(data.tree)
 library(tibble)
@@ -30,6 +34,121 @@ tree_grow <- function(x, y, nmin, minleaf, nfeat) {
         tree_grow_recurs(root_node, x, y, nmin, minleaf, nfeat)
         
         return(root_node)
+}
+
+# tree_pred:
+# 
+# input arguments names and types:
+# x: data.frame
+# tr: data.tree object
+#
+# returned result:
+# a vector with the classes predicted for x
+#
+# predicts the classes for x using classification tree tr
+tree_pred <- function(x, tr) {
+        # vector for all the predicted class labels
+        y <- vector(mode="integer", length=nrow(x))
+        
+        # loop over each row of x
+        for (i in 1:nrow(x)) {
+                current_node <- tr
+                
+                # traverse down the tree until a leaf is reached
+                repeat {
+                        # check if current node is a leaf
+                        if (current_node$isLeaf) {
+                                # classify sample as majority class in this leaf
+                                if (current_node$nr_good > current_node$nr_bad) {
+                                        y[i] <- 1
+                                }
+                                else {
+                                        y[i] <- 0
+                                }
+                                break
+                        }
+                        
+                        # check whether to go to the left or right child node
+                        split_feature <- current_node$feature
+                        split_value <- current_node$value
+                        
+                        if (x[i, split_feature] < split_value) {
+                                current_node <- Climb(current_node, position = 1)
+                        }
+                        else {
+                                current_node <- Climb(current_node, position = 2)
+                        }
+                }
+        }
+        
+        return(y)
+}
+
+# tree_grow_b:
+#
+# input arguments names and types:
+# x: data.frame
+# y: vector
+# nmin: integer
+# minleaf: integer
+# nfeat: integer
+# m: integer
+#
+# returned result:
+# a list of m classification trees
+#
+# m trees are grown for cases x and classes y and stored in a list
+tree_grow_b <- function(x, y, nmin, minleaf, nfeat, m) {
+        # combine features with classes
+        cases <- x
+        cases$class <- y
+        
+        # create a list for the trees
+        tree_list <- list()
+        
+        # create m trees, each grown on a bootstrap sample of x
+        for (i in 1:m) {
+                # take a random sample
+                sample_cases <- cases[sample(nrow(cases), (nrow(cases)), replace = TRUE), ]
+                
+                attributes <- sample_cases[-ncol(sample_cases)]
+                classes <- sample_cases[ncol(cases)]
+                
+                # grow a tree for this sample
+                tree <- tree_grow(attributes, classes, nmin, minleaf, nfeat)
+                
+                tree_list[[i]] <- tree
+        }
+        
+        return (tree_list)
+}
+
+# tree_pred_b:
+#
+# input argument names and types:
+# trees: list of data.tree objects
+# x: data.frame
+#
+# returned result:
+# vector with classes predicted for x
+#
+# the classes for x are predicted using each classification tree,
+# the majority of each of these predictions is then used as the predicted class for x
+tree_pred_b <- function(trees, x) {
+        # create a dataframe for all the predictions
+        predictions_matrix <- data.frame(matrix(NA, nrow = nrow(x), ncol = length(trees)))
+        
+        # loop over all the trees and add predictions vector as column to the matrix
+        for (i in 1:length(trees)) {
+                tree <- trees[[i]]
+                prediction <- tree_pred(x, tree)
+                predictions_matrix[i] <- prediction
+        }
+        
+        # create a predictions vector by taking the majority votes for each row
+        y <- ifelse(rowSums(predictions_matrix==1) < rowSums(predictions_matrix==0), 0, 1)
+        
+        return(y)
 }
 
 # tree_grow_recurs
@@ -151,121 +270,6 @@ tree_grow_recurs <- function(node, cases, classes, nmin, minleaf, nfeat) {
         }
         
         return()
-}
-
-# tree_pred:
-# 
-# input arguments names and types:
-# x: data.frame
-# tr: data.tree object
-#
-# returned result:
-# a vector with the classes predicted for x
-#
-# predicts the classes for x using classification tree tr
-tree_pred <- function(x, tr) {
-        # vector for all the predicted class labels
-        y <- vector(mode="integer", length=nrow(x))
-        
-        # loop over each row of x
-        for (i in 1:nrow(x)) {
-                current_node <- tr
-                
-                # traverse down the tree until a leaf is reached
-                repeat {
-                        # check if current node is a leaf
-                        if (current_node$isLeaf) {
-                                # classify sample as majority class in this leaf
-                                if (current_node$nr_good > current_node$nr_bad) {
-                                        y[i] <- 1
-                                }
-                                else {
-                                        y[i] <- 0
-                                }
-                                break
-                        }
-                        
-                        # check whether to go to the left or right child node
-                        split_feature <- current_node$feature
-                        split_value <- current_node$value
-                        
-                        if (x[i, split_feature] < split_value) {
-                                current_node <- Climb(current_node, position = 1)
-                        }
-                        else {
-                                current_node <- Climb(current_node, position = 2)
-                        }
-                }
-        }
-        
-        return(y)
-}
-
-# tree_grow_b:
-#
-# input arguments names and types:
-# x: data.frame
-# y: vector
-# nmin: integer
-# minleaf: integer
-# nfeat: integer
-# m: integer
-#
-# returned result:
-# a list of m classification trees
-#
-# m trees are grown for cases x and classes y and stored in a list
-tree_grow_b <- function(x, y, nmin, minleaf, nfeat, m) {
-        # combine features with classes
-        cases <- x
-        cases$class <- y
-        
-        # create a list for the trees
-        tree_list <- list()
-        
-        # create m trees, each grown on a bootstrap sample of x
-        for (i in 1:m) {
-                # take a random sample
-                sample_cases <- cases[sample(nrow(cases), (nrow(cases)), replace = TRUE), ]
-                
-                attributes <- sample_cases[-ncol(sample_cases)]
-                classes <- sample_cases[ncol(cases)]
-                
-                # grow a tree for this sample
-                tree <- tree_grow(attributes, classes, nmin, minleaf, nfeat)
-                
-                tree_list[[i]] <- tree
-        }
-        
-        return (tree_list)
-}
-
-# tree_pred_b:
-#
-# input argument names and types:
-# trees: list of data.tree objects
-# x: data.frame
-#
-# returned result:
-# vector with classes predicted for x
-#
-# the classes for x are predicted using each classification tree,
-# the majority of each of these predictions is then used as the predicted class for x
-tree_pred_b <- function(trees, x) {
-        # create a dataframe for all the predictions
-        predictions_matrix <- data.frame(matrix(NA, nrow = nrow(x), ncol = length(trees)))
-        
-        # loop over all the trees and add predictions vector as column to the matrix
-        for (i in 1:length(trees)) {
-                tree <- trees[[i]]
-                prediction <- tree_pred(x, tree)
-                predictions_matrix[i] <- prediction
-        }
-        
-        # create a predictions vector by taking the majority votes for each row
-        y <- ifelse(rowSums(predictions_matrix==1) < rowSums(predictions_matrix==0), 0, 1)
-        
-        return(y)
 }
 
 ## Part 2: Data Analysis
