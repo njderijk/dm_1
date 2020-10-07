@@ -2,6 +2,22 @@
 library(data.tree)
 library(tibble)
 
+# tree_grow
+#
+# input arguments names and types:
+# x: data.frame
+# y: vector
+# nmin: integer
+# minleaf: integer
+# nfeat: integer
+#
+# returned result:
+# the complete classification tree object (data.tree object)
+# 
+# cases x and classes y are used to grow a classification tree,
+# nmin and minleaf are used to stop growing the tree early
+# nfeat is the number of features that are used
+# tree_grow_recurs function is used to grow the tree recursively
 tree_grow <- function(x, y, nmin, minleaf, nfeat) {
         # get the total numbers of good and bad cases
         nr_good <- sum(y == 0)
@@ -16,6 +32,22 @@ tree_grow <- function(x, y, nmin, minleaf, nfeat) {
         return(root_node)
 }
 
+# tree_grow_recurs
+#
+# input arguments names and types:
+# node: data.tree object
+# cases: data.frame
+# classes: vector
+# nmin: integer
+# minleaf: integer
+# nfeat: integer
+#
+# returned result:
+# complete classification subtree with the given node as a root (data.tree object)
+#
+# this function is used to grow a classification tree recursively,
+# given the nmin and minleaf constraint, the best split for the given node is determined,
+# if a split is possible, possible splits for the child nodes are determined recursively
 tree_grow_recurs <- function(node, cases, classes, nmin, minleaf, nfeat) {
         # check nmin constraint
         if (nrow(cases) < nmin) {
@@ -97,18 +129,23 @@ tree_grow_recurs <- function(node, cases, classes, nmin, minleaf, nfeat) {
                 left_cases <- cases[cases[best_split_feature] < best_split_value,]
                 right_cases <- cases[cases[best_split_feature] > best_split_value,]
                 
+                # nr of good and bad cases that will end up in the right child node
                 left_bad <- sum(left_cases[ncol(left_cases)] == 0)
                 left_good <- sum(left_cases[ncol(left_cases)] == 1)
                 
+                # nr of good and bad cases that will end up in the left child node
                 right_bad <- sum(right_cases[ncol(right_cases)] == 0)
                 right_good <- sum(right_cases[ncol(right_cases)] == 1)
                 
+                # add the feature and the value this node is split on to the node
                 node$feature <- best_split_feature
                 node$value <- best_split_value
                 
+                # create and add both child nodes
                 left_node <- node$AddChild(left_name, nr_good = left_good, nr_bad = left_bad)
                 right_node <- node$AddChild(right_name, nr_good = right_good, nr_bad = right_bad)
                 
+                # grow subtrees for both child nodes recursively
                 tree_grow_recurs(left_node, left_cases[-ncol(left_cases)], left_cases[ncol(left_cases)], nmin, minleaf, nfeat)
                 tree_grow_recurs(right_node, right_cases[-ncol(right_cases)], right_cases[ncol(right_cases)] ,nmin, minleaf, nfeat)
         }
@@ -116,6 +153,16 @@ tree_grow_recurs <- function(node, cases, classes, nmin, minleaf, nfeat) {
         return()
 }
 
+# tree_pred:
+# 
+# input arguments names and types:
+# x: data.frame
+# tr: data.tree object
+#
+# returned result:
+# a vector with the classes predicted for x
+#
+# predicts the classes for x using classification tree tr
 tree_pred <- function(x, tr) {
         # vector for all the predicted class labels
         y <- vector(mode="integer", length=nrow(x))
@@ -154,7 +201,20 @@ tree_pred <- function(x, tr) {
         return(y)
 }
 
-# tree grow function with bagging
+# tree_grow_b:
+#
+# input arguments names and types:
+# x: data.frame
+# y: vector
+# nmin: integer
+# minleaf: integer
+# nfeat: integer
+# m: integer
+#
+# returned result:
+# a list of m classification trees
+#
+# m trees are grown for cases x and classes y and stored in a list
 tree_grow_b <- function(x, y, nmin, minleaf, nfeat, m) {
         # combine features with classes
         cases <- x
@@ -180,6 +240,17 @@ tree_grow_b <- function(x, y, nmin, minleaf, nfeat, m) {
         return (tree_list)
 }
 
+# tree_pred_b:
+#
+# input argument names and types:
+# trees: list of data.tree objects
+# x: data.frame
+#
+# returned result:
+# vector with classes predicted for x
+#
+# the classes for x are predicted using each classification tree,
+# the majority of each of these predictions is then used as the predicted class for x
 tree_pred_b <- function(trees, x) {
         # create a dataframe for all the predictions
         predictions_matrix <- data.frame(matrix(NA, nrow = nrow(x), ncol = length(trees)))
