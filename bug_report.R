@@ -272,123 +272,123 @@ tree_grow_recurs <- function(node, cases, classes, nmin, minleaf, nfeat) {
         return()
 }
 
-## Part 2: Data Analysis
-
-# 1. Short description of the data
-
-# The data set lists the number of pre- and post-release defects for every package and file in 
-# Eclipse releases in versions 2.0, 2.1, and 3.0. Historically, bug databases do not have information
-# regarding how, where, and by whom bugs were solved. However, this data set features metrics for the mapping 
-# of packages and classes to the number of defects that were reported in the first six 
-# months before and after release.
-
-# read in the training data (eclipse bug 2.0)
-raw_training_data <- read.csv('./bug_data/eclipse-metrics-packages-2.0.csv', header = T, sep = ";")
-training_data_x <- raw_training_data[,c(3, 5:44)]
-training_data_y <- raw_training_data[4]
-training_data_y <- ifelse(training_data_y$post >= 1, 1, 0)
-
-# read in the testing data (eclipse bug 3.0)
-raw_testing_data <- read.csv('./bug_data/eclipse-metrics-packages-3.0.csv', header = T, sep = ";")
-testing_data_x <- raw_testing_data[,c(3, 5:44)]
-testing_data_y <- raw_testing_data[4]
-testing_data_y <- ifelse(testing_data_y$post >= 1, 1, 0)
-
-# 1) train a single classification tree (nmin = 15, minleaf = 5, nfeat = 41)
-#       and compute the accuracy, precision and recall on the test set
-
-# grow a single tree on the training data
-tr_single <- tree_grow(training_data_x, training_data_y, 15, 5, 41)
-
-
-# predict classes for testing data using single tree grown on training data
-y_single <- tree_pred(testing_data_x, tr_single)
-
-# confusion matrix (single tree):
-conf_matrix_single <- table(true = testing_data_y, pred = y_single)
-TP_single <- conf_matrix_single[1,1]
-FP_single <- conf_matrix_single[1,2]
-FN_single <- conf_matrix_single[2,1]
-TN_single <- conf_matrix_single[2,2]
-
-print(conf_matrix_single)
-
-# accuracy, precision and recall for bagging:
-accuracy_single <- (TP_single + TN_single) / (TP_single + TN_single + FP_single + FN_single)
-precision_single <- TP_single / (TP_single + FP_single)
-recall_single <- TP_single / (TP_single + FN_single)
-print(paste("Accuracy single tree:", accuracy_single, "Precision single tree:", precision_single, "Recall single tree:", recall_single))
-
-tibble(Sensitivity = TP_single / (TP_single+FN_single), #sensitivity
-       Specificity = TN_single / (TN_single+FP_single), #specificity
-       #FPR = FP_single / (FP_single+TN_single),
-       #FNR = FN_single / (FN_single+TP_single),
-       Precision = TP_single / (TP_single + FP_single), # Precision
-       #NPV = TN_single / (TN_single + FN_single),
-       Accuracy = (TP_single + TN_single) / sum(conf_matrix_single))
-
-# 2) use bagging with nmin = 15, minleaf = 5, nfeat = 41, m = 100
-#       and compute the accuracy, precision and recall on the test set
-# grow a tree with bagging on the training data
-tr_bagging <- tree_grow_b(training_data_x, training_data_y, 15, 5, 41, 100)
-
-# predict classes for testing data using tree grown on training data with bagging
-y_bagging <- tree_pred_b(tr_bagging, testing_data_x)
-
-
-# confusion matrix (bagging):
-conf_matrix_bagging <- table(true = testing_data_y, pred = y_bagging)
-TP_bagging <- conf_matrix_bagging[1,1]
-FP_bagging <- conf_matrix_bagging[1,2]
-FN_bagging <- conf_matrix_bagging[2,1]
-TN_bagging <- conf_matrix_bagging[2,2]
-
-print(conf_matrix_bagging)
-
-
-# accuracy, precision and recall for bagging:
-accuracy_bagging <- (TP_bagging + TN_bagging) / (TP_bagging + TN_bagging + FP_bagging + FN_bagging)
-precision_bagging <- TP_bagging / (TP_bagging + FP_bagging)
-recall_bagging <- TP_bagging / (TP_bagging + FN_bagging)
-print(paste("Accuracy bagging tree:", accuracy_bagging, "Precision bagging tree:", precision_bagging, "Recall bagging tree:", recall_bagging))
-
-tibble(Sensitivity = TP_bagging / (TP_bagging+FN_bagging), #sensitivity
-       Specificity = TN_bagging / (TN_bagging+FP_bagging), #specificity
-       # FPR = FP_bagging / (FP_bagging+TN_bagging),
-       # FNR = FN_bagging / (FN_bagging+TP_bagging),
-       Precision = TP_bagging / (TP_bagging + FP_bagging), # Precision
-       # NPV = TN_bagging / (TN_bagging + FN_bagging),
-       Accuracy = (TP_bagging + TN_bagging) / sum(conf_matrix_bagging))
-
-# 3) Use Use random forests with the same parameter settings as under (2), except that nfeat = 6 
-# Compute the accuracy, precision and recall of the random forest on the test set.
-# grow a random forest on the training data
-tr_random_forest <- tree_grow_b(training_data_x, training_data_y, 15, 5, 6, 100)
-
-# predict classes for testing data using tree grown on training data with bagging
-y_random_forest <- tree_pred_b(tr_random_forest, testing_data_x)
-
-# confusion matrix (random forest):
-conf_matrix_random_forest <- table(true = testing_data_y, pred = y_random_forest)
-TP_random_forest <- conf_matrix_random_forest[1,1]
-FP_random_forest <- conf_matrix_random_forest[1,2]
-FN_random_forest <- conf_matrix_random_forest[2,1]
-TN_random_forest <- conf_matrix_random_forest[2,2]
-
-print(conf_matrix_random_forest)
-
-
-# accuracy, precision and recall for random forest:
-accuracy_random_forest <- (TP_random_forest + TN_random_forest) / (TP_random_forest + TN_random_forest + FP_random_forest + FN_random_forest)
-precision_random_forest <- TP_random_forest / (TP_random_forest + FP_random_forest)
-recall_random_forest <- TP_random_forest / (TP_random_forest + FN_random_forest)
-print(paste("Accuracy random_forest:", accuracy_random_forest, "Precision random forest:", precision_random_forest, "Recall random forest:", recall_random_forest))
-
-tibble(Sensitivity = TP_random_forest / (TP_random_forest+FN_random_forest), #sensitivity
-       Specificity = TN_random_forest / (TN_random_forest+FP_random_forest), #specificity
-       # FPR = FP_random_forest / (FP_random_forest+TN_random_forest),
-       #FNR = FN_random_forest / (FN_random_forest+TP_random_forest),
-       Precision = TP_random_forest / (TP_random_forest + FP_random_forest), # Precision
-       #NPV = TN_random_forest / (TN_random_forest + FN_random_forest),
-       Accuracy = (TP_random_forest + TN_random_forest) / sum(conf_matrix_random_forest))
-
+# ## Part 2: Data Analysis
+# 
+# # 1. Short description of the data
+# 
+# # The data set lists the number of pre- and post-release defects for every package and file in 
+# # Eclipse releases in versions 2.0, 2.1, and 3.0. Historically, bug databases do not have information
+# # regarding how, where, and by whom bugs were solved. However, this data set features metrics for the mapping 
+# # of packages and classes to the number of defects that were reported in the first six 
+# # months before and after release.
+# 
+# # read in the training data (eclipse bug 2.0)
+# raw_training_data <- read.csv('./bug_data/eclipse-metrics-packages-2.0.csv', header = T, sep = ";")
+# training_data_x <- raw_training_data[,c(3, 5:44)]
+# training_data_y <- raw_training_data[4]
+# training_data_y <- ifelse(training_data_y$post >= 1, 1, 0)
+# 
+# # read in the testing data (eclipse bug 3.0)
+# raw_testing_data <- read.csv('./bug_data/eclipse-metrics-packages-3.0.csv', header = T, sep = ";")
+# testing_data_x <- raw_testing_data[,c(3, 5:44)]
+# testing_data_y <- raw_testing_data[4]
+# testing_data_y <- ifelse(testing_data_y$post >= 1, 1, 0)
+# 
+# # 1) train a single classification tree (nmin = 15, minleaf = 5, nfeat = 41)
+# #       and compute the accuracy, precision and recall on the test set
+# 
+# # grow a single tree on the training data
+# tr_single <- tree_grow(training_data_x, training_data_y, 15, 5, 41)
+# 
+# 
+# # predict classes for testing data using single tree grown on training data
+# y_single <- tree_pred(testing_data_x, tr_single)
+# 
+# # confusion matrix (single tree):
+# conf_matrix_single <- table(true = testing_data_y, pred = y_single)
+# TP_single <- conf_matrix_single[1,1]
+# FP_single <- conf_matrix_single[1,2]
+# FN_single <- conf_matrix_single[2,1]
+# TN_single <- conf_matrix_single[2,2]
+# 
+# print(conf_matrix_single)
+# 
+# # accuracy, precision and recall for bagging:
+# accuracy_single <- (TP_single + TN_single) / (TP_single + TN_single + FP_single + FN_single)
+# precision_single <- TP_single / (TP_single + FP_single)
+# recall_single <- TP_single / (TP_single + FN_single)
+# print(paste("Accuracy single tree:", accuracy_single, "Precision single tree:", precision_single, "Recall single tree:", recall_single))
+# 
+# tibble(Sensitivity = TP_single / (TP_single+FN_single), #sensitivity
+#        Specificity = TN_single / (TN_single+FP_single), #specificity
+#        #FPR = FP_single / (FP_single+TN_single),
+#        #FNR = FN_single / (FN_single+TP_single),
+#        Precision = TP_single / (TP_single + FP_single), # Precision
+#        #NPV = TN_single / (TN_single + FN_single),
+#        Accuracy = (TP_single + TN_single) / sum(conf_matrix_single))
+# 
+# # 2) use bagging with nmin = 15, minleaf = 5, nfeat = 41, m = 100
+# #       and compute the accuracy, precision and recall on the test set
+# # grow a tree with bagging on the training data
+# tr_bagging <- tree_grow_b(training_data_x, training_data_y, 15, 5, 41, 100)
+# 
+# # predict classes for testing data using tree grown on training data with bagging
+# y_bagging <- tree_pred_b(tr_bagging, testing_data_x)
+# 
+# 
+# # confusion matrix (bagging):
+# conf_matrix_bagging <- table(true = testing_data_y, pred = y_bagging)
+# TP_bagging <- conf_matrix_bagging[1,1]
+# FP_bagging <- conf_matrix_bagging[1,2]
+# FN_bagging <- conf_matrix_bagging[2,1]
+# TN_bagging <- conf_matrix_bagging[2,2]
+# 
+# print(conf_matrix_bagging)
+# 
+# 
+# # accuracy, precision and recall for bagging:
+# accuracy_bagging <- (TP_bagging + TN_bagging) / (TP_bagging + TN_bagging + FP_bagging + FN_bagging)
+# precision_bagging <- TP_bagging / (TP_bagging + FP_bagging)
+# recall_bagging <- TP_bagging / (TP_bagging + FN_bagging)
+# print(paste("Accuracy bagging tree:", accuracy_bagging, "Precision bagging tree:", precision_bagging, "Recall bagging tree:", recall_bagging))
+# 
+# tibble(Sensitivity = TP_bagging / (TP_bagging+FN_bagging), #sensitivity
+#        Specificity = TN_bagging / (TN_bagging+FP_bagging), #specificity
+#        # FPR = FP_bagging / (FP_bagging+TN_bagging),
+#        # FNR = FN_bagging / (FN_bagging+TP_bagging),
+#        Precision = TP_bagging / (TP_bagging + FP_bagging), # Precision
+#        # NPV = TN_bagging / (TN_bagging + FN_bagging),
+#        Accuracy = (TP_bagging + TN_bagging) / sum(conf_matrix_bagging))
+# 
+# # 3) Use Use random forests with the same parameter settings as under (2), except that nfeat = 6 
+# # Compute the accuracy, precision and recall of the random forest on the test set.
+# # grow a random forest on the training data
+# tr_random_forest <- tree_grow_b(training_data_x, training_data_y, 15, 5, 6, 100)
+# 
+# # predict classes for testing data using tree grown on training data with bagging
+# y_random_forest <- tree_pred_b(tr_random_forest, testing_data_x)
+# 
+# # confusion matrix (random forest):
+# conf_matrix_random_forest <- table(true = testing_data_y, pred = y_random_forest)
+# TP_random_forest <- conf_matrix_random_forest[1,1]
+# FP_random_forest <- conf_matrix_random_forest[1,2]
+# FN_random_forest <- conf_matrix_random_forest[2,1]
+# TN_random_forest <- conf_matrix_random_forest[2,2]
+# 
+# print(conf_matrix_random_forest)
+# 
+# 
+# # accuracy, precision and recall for random forest:
+# accuracy_random_forest <- (TP_random_forest + TN_random_forest) / (TP_random_forest + TN_random_forest + FP_random_forest + FN_random_forest)
+# precision_random_forest <- TP_random_forest / (TP_random_forest + FP_random_forest)
+# recall_random_forest <- TP_random_forest / (TP_random_forest + FN_random_forest)
+# print(paste("Accuracy random_forest:", accuracy_random_forest, "Precision random forest:", precision_random_forest, "Recall random forest:", recall_random_forest))
+# 
+# tibble(Sensitivity = TP_random_forest / (TP_random_forest+FN_random_forest), #sensitivity
+#        Specificity = TN_random_forest / (TN_random_forest+FP_random_forest), #specificity
+#        # FPR = FP_random_forest / (FP_random_forest+TN_random_forest),
+#        #FNR = FN_random_forest / (FN_random_forest+TP_random_forest),
+#        Precision = TP_random_forest / (TP_random_forest + FP_random_forest), # Precision
+#        #NPV = TN_random_forest / (TN_random_forest + FN_random_forest),
+#        Accuracy = (TP_random_forest + TN_random_forest) / sum(conf_matrix_random_forest))
+# 
