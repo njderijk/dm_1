@@ -134,7 +134,7 @@ tree_grow_b <- function(x, y, nmin, minleaf, nfeat, m) {
 #
 # the classes for x are predicted using each classification tree,
 # the majority of each of these predictions is then used as the predicted class for x
-tree_pred_b <- function(trees, x) {
+tree_pred_b <- function(x, trees) {
         # create a dataframe for all the predictions
         predictions_matrix <- data.frame(matrix(NA, nrow = nrow(x), ncol = length(trees)))
         
